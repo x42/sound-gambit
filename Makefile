@@ -2,19 +2,20 @@ PREFIX ?= /usr/local
 bindir = $(PREFIX)/bin
 mandir = $(PREFIX)/share/man/man1
 
-CXXFLAGS ?= -Wall -g -O3
+PKG_CONFIG ?= pkg-config
+CXXFLAGS ?= -Wall -O3
 
 VERSION=0.2
 
 ###############################################################################
 
-ifeq ($(shell pkg-config --exists sndfile || echo no), no)
+ifeq ($(shell $(PKG_CONFIG) --exists sndfile || echo no), no)
   $(error "http://www.mega-nerd.com/libsndfile/ is required - install libsndfile1-dev")
 endif
 
-CXXFLAGS+=`pkg-config --cflags sndfile` -lm
-LOADLIBES=`pkg-config --libs sndfile`
 CPPFLAGS+=-DVERSION=\"$(VERSION)\"
+CXXFLAGS+=`$(PKG_CONFIG) --cflags sndfile`
+LOADLIBES=`$(PKG_CONFIG) --libs sndfile` -lm
 
 all: sound-gambit
 
