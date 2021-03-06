@@ -127,6 +127,7 @@ main (int argc, char** argv)
 	float threshold    = -1;   // dBFS
 	float release_time = 0.05; // ms
 	int   verbose      = 0;
+	FILE* verbose_fd   = stdout;
 
 	const char* optstring = "hi:r:t:Vv";
 
@@ -181,6 +182,15 @@ main (int argc, char** argv)
 		::exit (EXIT_FAILURE);
 	}
 
+	if (0 == strcmp (argv[optind], argv[optind + 1]) && strcmp (argv[optind], "-")) {
+		fprintf (stderr, "Error: Input and output must be distinct files\n");
+		::exit (EXIT_FAILURE);
+	}
+
+	if (0 == strcmp (argv[optind + 1], "-")) {
+		verbose_fd = stderr;
+	}
+
 	if (release_time < 0.001 || release_time > 1.0) {
 		fprintf (stderr, "Error: Release-time is out of bounds (1 <= r <= 1000) [ms].\n");
 		::exit (EXIT_FAILURE);
@@ -200,7 +210,7 @@ main (int argc, char** argv)
 
 	if ((infile = sf_open (argv[optind], SFM_READ, &nfo)) == 0) {
 		fprintf (stderr, "Cannot open '%s' for reading: ", argv[optind]);
-		puts (sf_strerror (NULL));
+		fputs (sf_strerror (NULL), stderr);
 		::exit (EXIT_FAILURE);
 	}
 
@@ -212,7 +222,7 @@ main (int argc, char** argv)
 
 	if ((outfile = sf_open (argv[optind + 1], SFM_WRITE, &nfo)) == 0) {
 		fprintf (stderr, "Cannot open '%s' for writing: ", argv[optind + 1]);
-		puts (sf_strerror (NULL));
+		fputs (sf_strerror (NULL), stderr);
 		rv = 1;
 		goto end;
 	}
@@ -229,12 +239,12 @@ main (int argc, char** argv)
 	if (verbose > 1) {
 		char strbuffer[65536];
 		sf_command (infile, SFC_GET_LOG_INFO, strbuffer, 65536);
-		puts (strbuffer);
+		fputs (strbuffer, verbose_fd);
 	} else if (verbose) {
-		printf ("Input FIle  : %s\n", argv[optind]);
-		printf ("Sample Rate : %d\n", nfo.samplerate);
-		printf ("Channels    : %d\n", nfo.channels);
-		printf ("Frames      : %" PRId64 "\n", nfo.frames);
+		fprintf (verbose_fd, "Input File  : %s\n", argv[optind]);
+		fprintf (verbose_fd, "Sample Rate : %d\n", nfo.samplerate);
+		fprintf (verbose_fd, "Channels    : %d\n", nfo.channels);
+		fprintf (verbose_fd, "Frames      : %" PRId64 "\n", nfo.frames);
 	}
 
 	copy_metadata (infile, outfile);
@@ -266,8 +276,8 @@ main (int argc, char** argv)
 		if (verbose > 1) {
 			float peak, gmax, gmin;
 			p.get_stats (&peak, &gmax, &gmin);
-			printf ("Level below thresh: %6.1fdB, max-gain: %4.1fdB, min-gain: %4.1fdB\n",
-			        coeff_to_dB (peak), coeff_to_dB (gmax), coeff_to_dB (gmin));
+			fprintf (verbose_fd, "Level below thresh: %6.1fdB, max-gain: %4.1fdB, min-gain: %4.1fdB\n",
+			         coeff_to_dB (peak), coeff_to_dB (gmax), coeff_to_dB (gmin));
 		}
 
 		sf_writef_float (outfile, out, n);
@@ -286,8 +296,8 @@ main (int argc, char** argv)
 		float peak, gmax, gmin;
 		p.get_stats (&peak, &gmax, &gmin);
 		if (verbose == 1) {
-			printf ("Output File     : %s\n", argv[optind + 1]);
-			printf ("Max-attenuation : %.2f dB\n", coeff_to_dB (gmin));
+			fprintf (verbose_fd, "Output File     : %s\n", argv[optind + 1]);
+			fprintf (verbose_fd, "Max-attenuation : %.2f dB\n", coeff_to_dB (gmin));
 		}
 	}
 
