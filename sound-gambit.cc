@@ -32,41 +32,46 @@ usage ()
 	printf ("sound-gambit - an Audio File Digital Peak Limiter.\n\n");
 	printf ("Usage: sound-gambit [ OPTIONS ] <src> <dst>\n\n");
 
-	printf ("Options:\n\
-  -i, --input-gain           input gain in dB (default 0)\n\
-  -t, --threshold            threshold in dBFS (default -1)\n\
-  -r, --release-time         release-time in ms (default 50)\n\
-  -h, --help                 display this help and exit\n\
-  -v, --verbose              show performed copy operations\n\
-  -V, --version              print version information and exit\n\
-\n");
+	/* **** "---------|---------|---------|---------|---------|---------|---------|---------|" */
+	printf ("Options:\n"
+	        "  -i, --input-gain           input gain in dB (default 0)\n"
+	        "  -t, --threshold            threshold in dBFS (default -1)\n"
+	        "  -r, --release-time         release-time in ms (default 50)\n"
+	        "  -h, --help                 display this help and exit\n"
+	        "  -v, --verbose              show performed copy operations\n"
+	        "  -V, --version              print version information and exit\n"
+	        "\n");
 
-	printf ("\n\
-This utility processes a given input file applying a digital peak\n\
-look-ahead limiter, constraining the output level to the given\n\
-threshold.\n\
-\n\
-The target file will have the same properties (sample-rate, channels,\n\
-bit-depth) as the source file.\n\
-\n\
-Prior to processing, additional input-gain can be applied. The allowed\n\
-range is -10 to +30 dB.\n\
-\n\
-The threshold range is -10 to 0 dBFS, and the limiter will not allow a single\n\
-sample above this level.\n\
-\n\
-The release-time can be set from 1 ms to 1 second. The limiter allows\n\
-short release times even on signals that contain high level low frequency\n\
-signals. Any gain reduction caused by those will have an automatically\n\
-extended hold time in order to avoid the limiter following the shape of\n\
-the waveform and create excessive distortion. Short superimposed peaks\n\
-will still have the release time as set by this control.\n\
-\n\
-The algorithm is based on Fons Adriaensen's zita-audiotools.\n\
-\n");
+	printf ("\n"
+	        "This utility processes a given input file applying a digital peak\n"
+	        "look-ahead limiter, constraining the output level to the given\n"
+	        "threshold.\n"
+	        "\n"
+	        "The target file will have the same properties (sample-rate, channels,\n"
+	        "bit-depth) as the source file.\n"
+	        "\n"
+	        "Prior to processing, additional input-gain can be applied. The allowed\n"
+	        "range is -10 to +30 dB.\n"
+	        "\n"
+	        "The threshold range is -10 to 0 dBFS, and the limiter will not allow a\n"
+	        "single sample above this level.\n"
+	        "\n"
+	        "The release-time can be set from 1 ms to 1 second. The limiter allows\n"
+	        "short release times even on signals that contain high level low frequency\n"
+	        "signals. Any gain reduction caused by those will have an automatically\n"
+	        "extended hold time in order to avoid the limiter following the shape of\n"
+	        "the waveform and create excessive distortion. Short superimposed peaks\n"
+	        "will still have the release time as set by this control.\n"
+	        "\n"
+	        "The algorithm is based on Fons Adriaensen's zita-audiotools.\n"
+	        "\n");
 
-	printf ("Report bugs to <https://github.com/x42/sound-gambit/issues>\n"
-	        "Website: <https://github.com/x42/sound-gambit/>\n");
+	printf ("\n"
+	        "Examples:\n"
+	        "sound-gambit -i 3 -t -1.2 my-music.wav my-louder-music.wav\n\n");
+
+	    printf ("Report bugs to <https://github.com/x42/sound-gambit/issues>\n"
+	            "Website: <https://github.com/x42/sound-gambit/>\n");
 	::exit (EXIT_SUCCESS);
 }
 
