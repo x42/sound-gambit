@@ -41,7 +41,7 @@ usage ()
 	        "  -t, --threshold            threshold in dBFS (default -1)\n"
 	        "  -r, --release-time         release-time in ms (default 50)\n"
 	        "  -h, --help                 display this help and exit\n"
-	        "  -v, --verbose              show performed copy operations\n"
+	        "  -v, --verbose              show processing information\n"
 	        "  -V, --version              print version information and exit\n"
 	        "\n");
 
@@ -51,7 +51,9 @@ usage ()
 	        "threshold.\n"
 	        "\n"
 	        "The target file will have the same properties (sample-rate, channels,\n"
-	        "bit-depth) as the source file.\n"
+	        "bit-depth) as the source file, and file meta-data is copied.\n"
+	        "The algorithm does not work in-place. Input and Output files must be distinct.\n"
+	        "Reading via standard-I/O is supported, use '-' as file-name.\n"
 	        "\n"
 	        "Prior to processing, additional input-gain can be applied. The allowed\n"
 	        "range is -10 to +30 dB.\n"
@@ -66,12 +68,12 @@ usage ()
 	        "the waveform and create excessive distortion. Short superimposed peaks\n"
 	        "will still have the release time as set by this control.\n"
 	        "\n"
-	        "The algorithm is based on Fons Adriaensen's zita-audiotools.\n"
-	        "\n");
+	        "The algorithm is based on Fons Adriaensen's zita-audiotools.\n");
 
 	printf ("\n"
 	        "Examples:\n"
-	        "sound-gambit -i 3 -t -1.2 my-music.wav my-louder-music.wav\n\n");
+	        "sound-gambit -i 3 -t -1.2 my-music.wav my-louder-music.wav\n\n"
+	        "cat file.wav | sound-gambit -v - output.wav\n\n");
 
 	printf ("Report bugs to <https://github.com/x42/sound-gambit/issues>\n"
 	        "Website: <https://github.com/x42/sound-gambit/>\n");
@@ -131,14 +133,16 @@ main (int argc, char** argv)
 
 	const char* optstring = "hi:r:t:Vv";
 
+	/* clang-format off */
 	const struct option longopts[] = {
 		{ "input-gain",   required_argument, 0, 'i' },
 		{ "threshold",    required_argument, 0, 't' },
 		{ "release-time", required_argument, 0, 'r' },
-		{ "help",         no_argument, 0, 'h' },
-		{ "version",      no_argument, 0, 'V' },
-		{ "verbose",      no_argument, 0, 'v' },
+		{ "help",         no_argument,       0, 'h' },
+		{ "version",      no_argument,       0, 'V' },
+		{ "verbose",      no_argument,       0, 'v' },
 	};
+	/* clang-format on */
 
 	int c = 0;
 	while (EOF != (c = getopt_long (argc, argv,
