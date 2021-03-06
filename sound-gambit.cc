@@ -46,7 +46,7 @@ This utility processes a given input file applying a digital peak\n\
 look-ahead limiter. Constraining the output level to the given\n\
 threshold.\n\
 \n\
-The target file will have the properties (sample-rate, channels,\n\
+The target file will have the same properties (sample-rate, channels,\n\
 bit-depth) as the source file.\n\
 \n\
 Prior to processing additional input-gain can be applied. The allowed\n\
