@@ -4,7 +4,7 @@ mandir = $(PREFIX)/share/man/man1
 
 CXXFLAGS ?= -Wall -g -O3
 
-VERSION=0.1
+VERSION=0.2
 
 ###############################################################################
 
