@@ -75,6 +75,30 @@ usage ()
 	::exit (EXIT_SUCCESS);
 }
 
+static void
+copy_metadata (SNDFILE* infile, SNDFILE* outfile)
+{
+	SF_CUES           cues;
+	SF_BROADCAST_INFO binfo;
+
+	memset (&cues, 0, sizeof (cues));
+	memset (&binfo, 0, sizeof (binfo));
+
+	for (int k = SF_STR_FIRST; k <= SF_STR_LAST; ++k) {
+		const char* str = sf_get_string (infile, k);
+		if (str != NULL) {
+			sf_set_string (outfile, k, str);
+		}
+	}
+
+	if (sf_command (infile, SFC_GET_CUE, &cues, sizeof (cues)) == SF_TRUE)
+		sf_command (outfile, SFC_SET_CUE, &cues, sizeof (cues));
+
+	if (sf_command (infile, SFC_GET_BROADCAST_INFO, &binfo, sizeof (binfo)) == SF_TRUE) {
+		sf_command (outfile, SFC_SET_BROADCAST_INFO, &binfo, sizeof (binfo));
+	}
+}
+
 int
 main (int argc, char** argv)
 {
@@ -178,6 +202,8 @@ main (int argc, char** argv)
 		rv = 1;
 		goto end;
 	}
+
+	copy_metadata (infile, outfile);
 
 	p.init (nfo.samplerate, nfo.channels);
 	p.set_inpgain (input_gain);
