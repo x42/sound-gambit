@@ -15,15 +15,18 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <cmath>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 #include <getopt.h>
+#include <inttypes.h>
+#include <limits>
 #include <sndfile.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
 #include "peaklim.h"
 
-#define BLOCKSIZE 1024
+#define BLOCKSIZE 4096
 
 static void
 usage ()
@@ -70,9 +73,18 @@ usage ()
 	        "Examples:\n"
 	        "sound-gambit -i 3 -t -1.2 my-music.wav my-louder-music.wav\n\n");
 
-	    printf ("Report bugs to <https://github.com/x42/sound-gambit/issues>\n"
-	            "Website: <https://github.com/x42/sound-gambit/>\n");
+	printf ("Report bugs to <https://github.com/x42/sound-gambit/issues>\n"
+	        "Website: <https://github.com/x42/sound-gambit/>\n");
 	::exit (EXIT_SUCCESS);
+}
+
+static float
+coeff_to_dB (float coeff)
+{
+	if (coeff < 1e-15) {
+		return -std::numeric_limits<float>::infinity ();
+	}
+	return 20.0f * log10f (coeff);
 }
 
 static void
@@ -105,12 +117,12 @@ main (int argc, char** argv)
 	SF_INFO  nfo;
 	SNDFILE* infile  = NULL;
 	SNDFILE* outfile = NULL;
-	float*   inp = NULL;
-	float*   out = NULL;
+	float*   inp     = NULL;
+	float*   out     = NULL;
 	Peaklim  p;
 	size_t   latency;
 
-	int rv             = 0;
+	int   rv           = 0;
 	float input_gain   = 0;    // dB
 	float threshold    = -1;   // dBFS
 	float release_time = 0.05; // ms
@@ -187,7 +199,8 @@ main (int argc, char** argv)
 	memset (&nfo, 0, sizeof (SF_INFO));
 
 	if ((infile = sf_open (argv[optind], SFM_READ, &nfo)) == 0) {
-		fprintf (stderr, "Cannot open '%s' for reading\n", argv[optind]);
+		fprintf (stderr, "Cannot open '%s' for reading: ", argv[optind]);
+		puts (sf_strerror (NULL));
 		::exit (EXIT_FAILURE);
 	}
 
@@ -198,9 +211,30 @@ main (int argc, char** argv)
 	}
 
 	if ((outfile = sf_open (argv[optind + 1], SFM_WRITE, &nfo)) == 0) {
-		fprintf (stderr, "Cannot open '%s' for writing\n", argv[optind + 1]);
+		fprintf (stderr, "Cannot open '%s' for writing: ", argv[optind + 1]);
+		puts (sf_strerror (NULL));
 		rv = 1;
 		goto end;
+	}
+
+	inp = (float*)malloc (BLOCKSIZE * nfo.channels * sizeof (float));
+	out = (float*)malloc (BLOCKSIZE * nfo.channels * sizeof (float));
+
+	if (!inp || !out) {
+		fprintf (stderr, "Out of memory\n");
+		rv = 1;
+		goto end;
+	}
+
+	if (verbose > 1) {
+		char strbuffer[65536];
+		sf_command (infile, SFC_GET_LOG_INFO, strbuffer, 65536);
+		puts (strbuffer);
+	} else if (verbose) {
+		printf ("Input FIle  : %s\n", argv[optind]);
+		printf ("Sample Rate : %d\n", nfo.samplerate);
+		printf ("Channels    : %d\n", nfo.channels);
+		printf ("Frames      : %" PRId64 "\n", nfo.frames);
 	}
 
 	copy_metadata (infile, outfile);
@@ -211,13 +245,6 @@ main (int argc, char** argv)
 	p.set_release (release_time);
 
 	latency = p.get_latency ();
-	inp     = (float*)malloc (BLOCKSIZE * nfo.channels * sizeof (float));
-	out     = (float*)malloc (BLOCKSIZE * nfo.channels * sizeof (float));
-
-	if (!inp || !out) {
-		rv = 1;
-		goto end;
-	}
 
 	do {
 		size_t n = sf_readf_float (infile, inp, BLOCKSIZE);
@@ -239,7 +266,8 @@ main (int argc, char** argv)
 		if (verbose > 1) {
 			float peak, gmax, gmin;
 			p.get_stats (&peak, &gmax, &gmin);
-			printf ("Peak: %.1f Max: %.1f Min: %.1f\n", peak, gmax, gmin);
+			printf ("Level below thresh: %6.1fdB, max-gain: %4.1fdB, min-gain: %4.1fdB\n",
+			        coeff_to_dB (peak), coeff_to_dB (gmax), coeff_to_dB (gmin));
 		}
 
 		sf_writef_float (outfile, out, n);
@@ -257,7 +285,10 @@ main (int argc, char** argv)
 	if (verbose) {
 		float peak, gmax, gmin;
 		p.get_stats (&peak, &gmax, &gmin);
-		printf ("Peak: %.1f Max: %.1f Min: %.1f\n", peak, gmax, gmin);
+		if (verbose == 1) {
+			printf ("Output File     : %s\n", argv[optind + 1]);
+			printf ("Max-attenuation : %.2f dB\n", coeff_to_dB (gmin));
+		}
 	}
 
 end:

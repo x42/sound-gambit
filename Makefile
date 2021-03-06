@@ -12,7 +12,7 @@ ifeq ($(shell pkg-config --exists sndfile || echo no), no)
   $(error "http://www.mega-nerd.com/libsndfile/ is required - install libsndfile1-dev")
 endif
 
-CXXFLAGS+=`pkg-config --cflags sndfile`
+CXXFLAGS+=`pkg-config --cflags sndfile` -lm
 LOADLIBES=`pkg-config --libs sndfile`
 CPPFLAGS+=-DVERSION=\"$(VERSION)\"
 
