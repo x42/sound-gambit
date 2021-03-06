@@ -102,7 +102,7 @@ main (int argc, char** argv)
 	while (EOF != (c = getopt_long (argc, argv,
 	                                optstring, longopts, (int*)0))) {
 		switch (c) {
-			case 'g':
+			case 'i':
 				input_gain = atof (optarg);
 				break;
 
