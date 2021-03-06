@@ -29,7 +29,7 @@ static void
 usage ()
 {
 	// help2man compatible format (standard GNU help-text)
-	printf ("sound-gambit - a Audio File Digital Peak Limiter.\n\n");
+	printf ("sound-gambit - an Audio File Digital Peak Limiter.\n\n");
 	printf ("Usage: sound-gambit [ OPTIONS ] <src> <dst>\n\n");
 
 	printf ("Options:\n\
@@ -43,16 +43,16 @@ usage ()
 
 	printf ("\n\
 This utility processes a given input file applying a digital peak\n\
-look-ahead limiter. Constraining the output level to the given\n\
+look-ahead limiter, constraining the output level to the given\n\
 threshold.\n\
 \n\
 The target file will have the same properties (sample-rate, channels,\n\
 bit-depth) as the source file.\n\
 \n\
-Prior to processing additional input-gain can be applied. The allowed\n\
+Prior to processing, additional input-gain can be applied. The allowed\n\
 range is -10 to +30 dB.\n\
 \n\
-The threshold range is -10 to 0 dBFS, and limiter will not allow a single\n\
+The threshold range is -10 to 0 dBFS, and the limiter will not allow a single\n\
 sample above this level.\n\
 \n\
 The release-time can be set from 1 ms to 1 second. The limiter allows\n\
