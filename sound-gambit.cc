@@ -87,10 +87,10 @@ main (int argc, char** argv)
 	float release_time = 0.05; // ms
 	int   verbose      = 0;
 
-	const char* optstring = "g:hr:t:Vv";
+	const char* optstring = "hi:r:t:Vv";
 
 	const struct option longopts[] = {
-		{ "input-gain",   required_argument, 0, 'g' },
+		{ "input-gain",   required_argument, 0, 'i' },
 		{ "threshold",    required_argument, 0, 't' },
 		{ "release-time", required_argument, 0, 'r' },
 		{ "help",         no_argument, 0, 'h' },
@@ -102,7 +102,7 @@ main (int argc, char** argv)
 	while (EOF != (c = getopt_long (argc, argv,
 	                                optstring, longopts, (int*)0))) {
 		switch (c) {
-			case 'g':
+			case 'i':
 				input_gain = atof (optarg);
 				break;
 
