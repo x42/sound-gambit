@@ -222,8 +222,8 @@ main (int argc, char** argv)
 		::exit (EXIT_FAILURE);
 	}
 
-	if (nfo.channels > 64) {
-		fprintf (stderr, "Only up to 64 channels are supported\n");
+	if (nfo.channels > Peaklim::MAXCHAN) {
+		fprintf (stderr, "Only up to %d channels are supported\n", Peaklim::MAXCHAN);
 		rv = 1;
 		goto end;
 	}
