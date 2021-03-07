@@ -284,7 +284,7 @@ main (int argc, char** argv)
 		if (verbose > 1) {
 			float peak, gmax, gmin;
 			p.get_stats (&peak, &gmax, &gmin);
-			fprintf (verbose_fd, "Level below thresh: %6.1fdB, max-gain: %4.1fdB, min-gain: %4.1fdB\n",
+			fprintf (verbose_fd, "Level relative to threshold: %6.1fdB, max-gain: %4.1fdB, min-gain: %4.1fdB\n",
 			         coeff_to_dB (peak), coeff_to_dB (gmax), coeff_to_dB (gmin));
 		}
 
