@@ -41,9 +41,10 @@ usage ()
 
 	/* **** "---------|---------|---------|---------|---------|---------|---------|---------|" */
 	printf ("Options:\n"
-	        "  -i, --input-gain           input gain in dB (default 0)\n"
-	        "  -t, --threshold            threshold in dBFS (default -1)\n"
-	        "  -r, --release-time         release-time in ms (default 50)\n"
+	        "  -i, --input-gain <db>      input gain in dB (default 0)\n"
+	        "  -T, --true-peak            oversample, use true-peak threshold\n"
+	        "  -t, --threshold <dBFS>     threshold in dBFS/dBTP (default -1)\n"
+	        "  -r, --release-time <ms>    release-time in ms (default 50)\n"
 	        "  -h, --help                 display this help and exit\n"
 	        "  -v, --verbose              show processing information\n"
 	        "  -V, --version              print version information and exit\n"
@@ -77,7 +78,7 @@ usage ()
 	printf ("\n"
 	        "Examples:\n"
 	        "sound-gambit -i 3 -t -1.2 my-music.wav my-louder-music.wav\n\n"
-	        "cat file.wav | sound-gambit -v - output.wav\n\n");
+	        "ffmpeg -i file.mp3 -f wav - | sound-gambit -v -T - output.wav\n\n");
 
 	printf ("Report bugs to <https://github.com/x42/sound-gambit/issues>\n"
 	        "Website: <https://github.com/x42/sound-gambit/>\n");
@@ -126,21 +127,23 @@ main (int argc, char** argv)
 	float*   inp     = NULL;
 	float*   out     = NULL;
 	Peaklim  p;
-	size_t   latency;
+	int      latency;
 
 	int   rv           = 0;
 	float input_gain   = 0;    // dB
 	float threshold    = -1;   // dBFS
 	float release_time = 0.05; // ms
+	bool  true_peak    = false;
 	int   verbose      = 0;
 	FILE* verbose_fd   = stdout;
 
-	const char* optstring = "hi:r:t:Vv";
+	const char* optstring = "hi:r:Tt:Vv";
 
 	/* clang-format off */
 	const struct option longopts[] = {
 		{ "input-gain",   required_argument, 0, 'i' },
 		{ "threshold",    required_argument, 0, 't' },
+		{ "true-peak",    no_argument      , 0, 'T' },
 		{ "release-time", required_argument, 0, 'r' },
 		{ "help",         no_argument,       0, 'h' },
 		{ "version",      no_argument,       0, 'V' },
@@ -162,6 +165,10 @@ main (int argc, char** argv)
 
 			case 'r':
 				release_time = atof (optarg) / 1000.f;
+				break;
+
+			case 'T':
+				true_peak = true;
 				break;
 
 			case 't':
@@ -261,11 +268,12 @@ main (int argc, char** argv)
 	p.set_inpgain (input_gain);
 	p.set_threshold (threshold);
 	p.set_release (release_time);
+	p.set_truepeak (true_peak);
 
 	latency = p.get_latency ();
 
 	do {
-		size_t n = sf_readf_float (infile, inp, BLOCKSIZE);
+		int n = sf_readf_float (infile, inp, BLOCKSIZE);
 		if (n == 0) {
 			break;
 		}

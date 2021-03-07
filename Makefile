@@ -3,7 +3,7 @@ bindir = $(PREFIX)/bin
 mandir = $(PREFIX)/share/man/man1
 
 PKG_CONFIG ?= pkg-config
-CXXFLAGS ?= -Wall -O3
+CXXFLAGS ?= -Wall -O3 -ffast-math
 
 VERSION=0.2
 

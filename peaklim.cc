@@ -15,6 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <algorithm>
 #include <assert.h>
 #include <math.h>
 #include <string.h>
@@ -61,12 +62,13 @@ Histmin::write (float v)
 }
 
 Peaklim::Peaklim (void)
-    : _fsamp (0),
-      _nchan (0),
-      _rstat (false),
-      _peak (0),
-      _gmax (1),
-      _gmin (1)
+    : _fsamp (0)
+    , _nchan (0)
+    , _rstat (false)
+    , _peak (0)
+    , _gmax (1)
+    , _gmin (1)
+    , _truepeak (false)
 {
 	for (int i = 0; i < MAXCHAN; i++)
 		_dbuff[i] = 0;
@@ -99,6 +101,20 @@ Peaklim::set_release (float v)
 		v = 1e-3f;
 	}
 	_w3 = 1.0f / (v * _fsamp);
+}
+
+void
+Peaklim::set_truepeak (bool v)
+{
+	if (_truepeak == v) {
+		return;
+	}
+	for (int i = 0; i < _nchan; i++) {
+		for (int j = 0; j < 16; ++j) {
+			_z[i][j] = 0.0f;
+		}
+	}
+	_truepeak = v;
 }
 
 void
@@ -140,8 +156,12 @@ Peaklim::init (float fsamp, int nchan)
 	_w1  = 10.0f / _delay;
 	_w2  = _w1 / _div2;
 	_w3  = 1.0f / (0.01f * fsamp);
-	for (i = 0; i < _nchan; i++)
+	for (i = 0; i < _nchan; i++) {
 		_zlf[i] = 0.0f;
+		for (int j = 0; j < 16; ++j) {
+			_z[i][j] = 0.0f;
+		}
+	}
 	_z1   = 1.0f;
 	_z2   = 1.0f;
 	_z3   = 1.0f;
@@ -165,6 +185,38 @@ Peaklim::fini (void)
 	_nchan = 0;
 }
 
+/*
+ * _g1 : input-gain (target)
+ * _g0 : current gain (LPFed)
+ * _dg : gain-delta per sample, updated every (_div1 * _div2) samples
+ *
+ * _gt : threshold
+ *
+ * _m1 : digital-peak (reset per _div1 cycle)
+ * _m2 : low-pass filtered (_wlf) digital-peak (reset per _div2 cycle)
+ *
+ * _zlf[] helper to calc _m2 (per channel LPF'ed input) with input-gain applied
+ *
+ * _c1 : coarse chunk-size (sr dependent), count-down _div1
+ * _c2 : 8x divider of _c1 cycle
+ *
+ * _h1 : target gain-reduction according to 1 / _m1 (per _div1 cycle)
+ * _h2 : target gain-reduction according to 1 / _m2 (per _div2 cycle)
+ *
+ * _z1 : LPFed (_w1) _h1 gain (digital peak)
+ * _z2 : LPFed (_w2) _h2 gain (_wlf filtered digital peak)
+ *
+ * _z3 : actual gain to apply (max of _z1, z2)
+ *       falls (more gain-reduction) via _w1 (per sample);
+ *       rises (less gain-reduction) via _w3 (per sample);
+ *
+ * _w1 : 10 / delay;
+ * _w2 : _w1 / _div2
+ * _w3 : user-set release time
+ *
+ * _delri: offset in delay ringbuffer
+ * ri, wi; read/write indices
+ */
 void
 Peaklim::process (int nframes, float const* inp, float* out)
 {
@@ -206,7 +258,40 @@ Peaklim::process (int nframes, float const* inp, float* out)
 				g += d;
 				_dbuff[j][wi + i] = x;
 				z += _wlf * (x - z) + 1e-20f;
-				x = fabsf (x);
+
+				if (_truepeak) {
+					float* r = _z[j];
+					float  u[4];
+					r[15] = x;
+					/* 4x upsample for true-peak analysis, cosine windowed sinc */
+					/* clang-format off */
+					u[0] = r[15];
+					u[1] = r[ 0] * -6.684021e-04f + r[ 1] * +4.087248e-03f + r[ 2] * -1.133119e-02f + r[ 3] * +2.388441e-02f
+					     + r[ 4] * -4.467940e-02f + r[ 5] * +8.174839e-02f + r[ 6] * -1.694324e-01f + r[ 7] * +8.981487e-01f
+					     + r[ 8] * +2.936442e-01f + r[ 9] * -1.140193e-01f + r[10] * +6.021466e-02f + r[11] * -3.295209e-02f
+					     + r[12] * +1.681495e-02f + r[13] * -7.155689e-03f + r[14] * +1.968671e-03f + r[15] * -6.992370e-05f;
+					u[2] = r[ 0] * -4.077490e-04f + r[ 1] * +4.126530e-03f + r[ 2] * -1.286058e-02f + r[ 3] * +2.846786e-02f
+					     + r[ 4] * -5.434415e-02f + r[ 5] * +9.903067e-02f + r[ 6] * -1.943250e-01f + r[ 7] * +6.305035e-01f
+					     + r[ 8] * +6.305035e-01f + r[ 9] * -1.943250e-01f + r[10] * +9.903067e-02f + r[11] * -5.434415e-02f
+					     + r[12] * +2.846786e-02f + r[13] * -1.286058e-02f + r[14] * +4.126530e-03f + r[15] * -4.077490e-04f;
+					u[3] = r[ 0] * -6.992370e-05f + r[ 1] * +1.968671e-03f + r[ 2] * -7.155689e-03f + r[ 3] * +1.681495e-02f
+					     + r[ 4] * -3.295209e-02f + r[ 5] * +6.021466e-02f + r[ 6] * -1.140193e-01f + r[ 7] * +2.936442e-01f
+					     + r[ 8] * +8.981487e-01f + r[ 9] * -1.694324e-01f + r[10] * +8.174839e-02f + r[11] * -4.467940e-02f
+					     + r[12] * +2.388441e-02f + r[13] * -1.133119e-02f + r[14] * +4.087248e-03f + r[15] * -6.684021e-04f;
+					/* clang-format on */
+
+					for (int i = 0; i < 15; ++i) {
+						r[i] = r[i + 1];
+					}
+
+					float p1 = std::max (fabsf (u[0]), fabsf (u[1]));
+					float p2 = std::max (fabsf (u[2]), fabsf (u[3]));
+					x        = std::max (p1, p2);
+
+				} else {
+					x = fabsf (x);
+				}
+
 				if (x > m1) {
 					m1 = x;
 				}

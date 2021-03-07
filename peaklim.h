@@ -60,9 +60,10 @@ public:
 	void init (float fsamp, int nchan);
 	void fini (void);
 
-	void set_inpgain (float v);
-	void set_threshold (float v);
-	void set_release (float v);
+	void set_inpgain (float);
+	void set_threshold (float);
+	void set_release (float);
+	void set_truepeak (bool);
 
 	int
 	get_latency () const
@@ -97,12 +98,14 @@ private:
 	float          _w1, _w2, _w3, _wlf;
 	float          _z1, _z2, _z3;
 	float          _zlf[MAXCHAN];
+	float          _z[MAXCHAN][16];
 	volatile bool  _rstat;
 	volatile float _peak;
 	volatile float _gmax;
 	volatile float _gmin;
 	Histmin        _hist1;
 	Histmin        _hist2;
+	bool           _truepeak;
 };
 
 #endif
