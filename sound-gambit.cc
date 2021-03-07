@@ -44,7 +44,7 @@ usage ()
 	        "  -i, --input-gain <db>      input gain in dB (default 0)\n"
 	        "  -T, --true-peak            oversample, use true-peak threshold\n"
 	        "  -t, --threshold <dBFS>     threshold in dBFS/dBTP (default -1)\n"
-	        "  -r, --release-time <ms>    release-time in ms (default 50)\n"
+	        "  -r, --release-time <ms>    release-time in ms (default 10)\n"
 	        "  -h, --help                 display this help and exit\n"
 	        "  -v, --verbose              show processing information\n"
 	        "  -V, --version              print version information and exit\n"
@@ -132,7 +132,7 @@ main (int argc, char** argv)
 	int   rv           = 0;
 	float input_gain   = 0;    // dB
 	float threshold    = -1;   // dBFS
-	float release_time = 0.05; // ms
+	float release_time = 0.01; // ms
 	bool  true_peak    = false;
 	int   verbose      = 0;
 	FILE* verbose_fd   = stdout;
