@@ -98,7 +98,7 @@ private:
 	float          _w1, _w2, _w3, _wlf;
 	float          _z1, _z2, _z3;
 	float          _zlf[MAXCHAN];
-	float          _z[MAXCHAN][16];
+	float          _z[MAXCHAN][48];
 	volatile bool  _rstat;
 	volatile float _peak;
 	volatile float _gmax;
