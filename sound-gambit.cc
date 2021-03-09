@@ -296,7 +296,7 @@ main (int argc, char** argv)
 			continue;
 		}
 
-		if (verbose > 1) {
+		if (verbose > 2) {
 			float peak, gmax, gmin;
 			p.get_stats (&peak, &gmax, &gmin);
 			fprintf (verbose_fd, "Level relative to threshold: %6.1fdB, max-gain: %4.1fdB, min-gain: %4.1fdB\n",
@@ -324,10 +324,10 @@ main (int argc, char** argv)
 	}
 
 	if (verbose) {
-		float peak, gmax, gmin;
-		p.get_stats (&peak, &gmax, &gmin);
-		if (verbose == 1) {
-			fprintf (verbose_fd, "Output File     : %s\n", argv[optind + 1]);
+		fprintf (verbose_fd, "Output File     : %s\n", argv[optind + 1]);
+		if (verbose < 3) {
+			float peak, gmax, gmin;
+			p.get_stats (&peak, &gmax, &gmin);
 			fprintf (verbose_fd, "Max-attenuation : %.2f dB\n", coeff_to_dB (gmin));
 		}
 	}
