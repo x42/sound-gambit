@@ -9,7 +9,12 @@ files, and intended for, but not limited to, the final step of mastering.
 Usage
 -----
 
-Please see the included man-page, or run `sound-gambit --help`.
+```bash
+  sound-gambit input-file.wav output-file.wav
+```
+
+Please see the included man-page, or run `sound-gambit --help` for
+detailed usage information.
 
 Install
 -------
