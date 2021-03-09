@@ -280,7 +280,14 @@ main (int argc, char** argv)
 		p.process (n, inp, out);
 		if (latency > 0) {
 			int ns = n > latency ? n - latency : 0;
-			sf_writef_float (outfile, &out[latency], ns);
+			if (ns > 0) {
+				if (ns != sf_writef_float (outfile, &out[latency], ns)) {
+					fprintf (stderr, "Error writing to output file.\n");
+					rv = 1;
+					goto end;
+				}
+			}
+
 			if (n >= latency) {
 				latency = 0;
 			} else {
@@ -296,15 +303,23 @@ main (int argc, char** argv)
 			         coeff_to_dB (peak), coeff_to_dB (gmax), coeff_to_dB (gmin));
 		}
 
-		sf_writef_float (outfile, out, n);
+		if (n != sf_writef_float (outfile, out, n)) {
+			fprintf (stderr, "Error writing to output file.\n");
+			rv = 1;
+			goto end;
+		}
 	} while (1);
 
 	memset (inp, 0, BLOCKSIZE * nfo.channels * sizeof (float));
 	latency = p.get_latency ();
 	while (latency > 0) {
-		size_t n = latency > BLOCKSIZE ? BLOCKSIZE : latency;
+		int n = latency > BLOCKSIZE ? BLOCKSIZE : latency;
 		p.process (n, inp, out);
-		sf_writef_float (outfile, out, n);
+		if (n != sf_writef_float (outfile, out, n)) {
+			fprintf (stderr, "Error writing to output file.\n");
+			rv = 1;
+			goto end;
+		}
 		latency -= n;
 	}
 
