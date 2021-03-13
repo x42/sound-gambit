@@ -15,7 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifdef _WIN32
+#if defined _WIN32 || defined __APPLE__
 # define __STDC_FORMAT_MACROS
 #endif
 
