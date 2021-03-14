@@ -29,7 +29,7 @@ make
 #sudo make install PREFIX=/usr
 ```
 
-sndfile-gambit can be run from the source-dir without installation.
+sndfile-gambit can be run from the source tree without installation.
 
 Note to packagers: the Makefile honors `PREFIX` and `DESTDIR` variables as well
-as `CXXLAGS`, `LDFLAGS`. Please see the first few lines of the Makefile.
+as `CXXFLAGS`, `LDFLAGS`. Please see the first few lines of the Makefile.
