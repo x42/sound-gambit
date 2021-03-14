@@ -20,11 +20,16 @@ detailed usage information.
 Install
 -------
 
-Compiling sound-gambit requires libsndfile, gnu-make, and a c++-compiler.
+Compiling sound-gambit requires [libsndfile](http://www.mega-nerd.com/libsndfile/), gnu-make, and a c++-compiler.
 
 ```bash
-  git clone git://github.com/x42/sound-gambit.git
-  cd sound-gambit
-  make
-  sudo make install PREFIX=/usr
+git clone git://github.com/x42/sound-gambit.git
+cd sound-gambit
+make
+#sudo make install PREFIX=/usr
 ```
+
+sndfile-gambit can be run from the source-dir without installation.
+
+Note to packagers: the Makefile honors `PREFIX` and `DESTDIR` variables as well
+as `CXXLAGS`, `LDFLAGS`. Please see the first few lines of the Makefile.
