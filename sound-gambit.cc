@@ -15,10 +15,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#if defined _WIN32 || defined __APPLE__
-# define __STDC_FORMAT_MACROS
-#endif
-
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
@@ -279,10 +275,9 @@ main (int argc, char** argv)
 		sf_command (infile, SFC_GET_LOG_INFO, strbuffer, 65536);
 		fputs (strbuffer, verbose_fd);
 	} else if (verbose) {
-		fprintf (verbose_fd, "Input File  : %s\n", argv[optind]);
-		fprintf (verbose_fd, "Sample Rate : %d\n", nfo.samplerate);
-		fprintf (verbose_fd, "Channels    : %d\n", nfo.channels);
-		fprintf (verbose_fd, "Frames      : %" PRId64 "\n", nfo.frames);
+		fprintf (verbose_fd, "Input File      : %s\n", argv[optind]);
+		fprintf (verbose_fd, "Sample Rate     : %d Hz\n", nfo.samplerate);
+		fprintf (verbose_fd, "Channels        : %d\n", nfo.channels);
 	}
 
 	copy_metadata (infile, outfile);
@@ -334,11 +329,12 @@ main (int argc, char** argv)
 		} else {
 			float gain = coeff_to_dB (1.f / peak);
 			if (verbose) {
-				fprintf (verbose_fd, "%s-Peak : %6.2f dB%s, gain: %6.2fdB, total input-gain: %6.2fdB\n",
+				fprintf (verbose_fd, "%s-Peak%s: %.2f dB%s\n",
 				         true_peak ? "True" : "Digital",
+				         true_peak ? "       " : "    ",
 				         coeff_to_dB (peak),
-				         true_peak ? "TP" : "FS",
-				         gain, gain + input_gain + threshold);
+				         true_peak ? "TP" : "FS");
+				fprintf (verbose_fd, "Input Gain      : %.2f dB\n", gain + input_gain + threshold);
 			}
 			p.set_inpgain (gain + input_gain + threshold);
 		}
