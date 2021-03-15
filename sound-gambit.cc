@@ -62,7 +62,8 @@ usage ()
 	        "range is -10 to +30 dB.\n"
 	        "\n"
 	        "When auto-gain is enabled, input-gain is relative to the given threshold,\n"
-	        "and specifies the amount of effective gain-reduction that is applied.\n"
+	        "and specifies the amount of effective gain-reduction to be applied.\n"
+	        "If input-gain is zero, the file is only normalized to the given threshold.\n"
 	        "\n"
 	        "The threshold range is -10 to 0 dBFS, and the limiter will not allow a\n"
 	        "single sample above this level.\n"
@@ -212,11 +213,6 @@ main (int argc, char** argv)
 
 	if (0 == strcmp (argv[optind + 1], "-")) {
 		verbose_fd = stderr;
-	}
-
-	if (auto_gain && input_gain == 0) {
-		fprintf (stderr, "Error: Auto-gain with zero input gain has no effect.\n");
-		::exit (EXIT_FAILURE);
 	}
 
 	if (release_time < 0.001 || release_time > 1.0) {
