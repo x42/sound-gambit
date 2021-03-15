@@ -29,6 +29,7 @@
 #include <sndfile.h>
 
 #include "peaklim.h"
+#include "upsampler.h"
 
 #define BLOCKSIZE 4096
 
@@ -41,6 +42,7 @@ usage ()
 
 	/* **** "---------|---------|---------|---------|---------|---------|---------|---------|" */
 	printf ("Options:\n"
+	        "  -a, --auto-gain            specify gain relative to peak\n"
 	        "  -i, --input-gain <db>      input gain in dB (default 0)\n"
 	        "  -T, --true-peak            oversample, use true-peak threshold\n"
 	        "  -t, --threshold <dBFS>     threshold in dBFS/dBTP (default -1)\n"
@@ -62,6 +64,9 @@ usage ()
 	        "\n"
 	        "Prior to processing, additional input-gain can be applied. The allowed\n"
 	        "range is -10 to +30 dB.\n"
+	        "\n"
+	        "When auto-gain is enabled, input-gain is relative to the given threshold,\n"
+	        "and specifies the amount of effective gain-reduction that is applied.\n"
 	        "\n"
 	        "The threshold range is -10 to 0 dBFS, and the limiter will not allow a\n"
 	        "single sample above this level.\n"
@@ -121,26 +126,29 @@ copy_metadata (SNDFILE* infile, SNDFILE* outfile)
 int
 main (int argc, char** argv)
 {
-	SF_INFO  nfo;
-	SNDFILE* infile  = NULL;
-	SNDFILE* outfile = NULL;
-	float*   inp     = NULL;
-	float*   out     = NULL;
-	Peaklim  p;
-	int      latency;
+	SF_INFO    nfo;
+	SNDFILE*   infile  = NULL;
+	SNDFILE*   outfile = NULL;
+	float*     inp     = NULL;
+	float*     out     = NULL;
+	Peaklim    p;
+	Upsampler* u            = NULL;
+	int        latency      = 0;
+	int        rv           = 0;
+	float      input_gain   = 0;    // dB
+	float      threshold    = -1;   // dBFS/dBTP
+	float      release_time = 0.01; // ms
+	bool       true_peak    = false;
+	bool       auto_gain    = false;
+	int        verbose      = 0;
+	float      peak         = 0;
+	FILE*      verbose_fd   = stdout;
 
-	int   rv           = 0;
-	float input_gain   = 0;    // dB
-	float threshold    = -1;   // dBFS
-	float release_time = 0.01; // ms
-	bool  true_peak    = false;
-	int   verbose      = 0;
-	FILE* verbose_fd   = stdout;
-
-	const char* optstring = "hi:r:Tt:Vv";
+	const char* optstring = "ahi:r:Tt:Vv";
 
 	/* clang-format off */
 	const struct option longopts[] = {
+		{ "auto-gain",    no_argument,       0, 'a' },
 		{ "input-gain",   required_argument, 0, 'i' },
 		{ "threshold",    required_argument, 0, 't' },
 		{ "true-peak",    no_argument      , 0, 'T' },
@@ -155,6 +163,10 @@ main (int argc, char** argv)
 	while (EOF != (c = getopt_long (argc, argv,
 	                                optstring, longopts, (int*)0))) {
 		switch (c) {
+			case 'a':
+				auto_gain = true;
+				break;
+
 			case 'i':
 				input_gain = atof (optarg);
 				break;
@@ -206,6 +218,11 @@ main (int argc, char** argv)
 		verbose_fd = stderr;
 	}
 
+	if (auto_gain && input_gain == 0) {
+		fprintf (stderr, "Error: Auto-gain with zero input gain has no effect.\n");
+		::exit (EXIT_FAILURE);
+	}
+
 	if (release_time < 0.001 || release_time > 1.0) {
 		fprintf (stderr, "Error: Release-time is out of bounds (1 <= r <= 1000) [ms].\n");
 		::exit (EXIT_FAILURE);
@@ -231,6 +248,12 @@ main (int argc, char** argv)
 
 	if (nfo.channels > Peaklim::MAXCHAN) {
 		fprintf (stderr, "Only up to %d channels are supported\n", Peaklim::MAXCHAN);
+		rv = 1;
+		goto end;
+	}
+
+	if (!nfo.seekable && auto_gain) {
+		fprintf (stderr, "Auto-gain only works with seekable files\n");
 		rv = 1;
 		goto end;
 	}
@@ -269,6 +292,57 @@ main (int argc, char** argv)
 	p.set_threshold (threshold);
 	p.set_release (release_time);
 	p.set_truepeak (true_peak);
+
+	if (auto_gain && true_peak) {
+		u = new Upsampler ();
+		u->init (nfo.channels);
+	}
+
+	while (auto_gain) {
+		int n = sf_readf_float (infile, inp, BLOCKSIZE);
+		if (n == 0) {
+			break;
+		}
+		if (true_peak) {
+			peak = u->process (n, peak, inp);
+		} else {
+			for (int i = 0; i < n * nfo.channels; ++i) {
+				peak = fmaxf (peak, fabsf (inp[i]));
+			}
+		}
+	}
+
+	if (auto_gain) {
+		if (true_peak) {
+			memset (inp, 0, BLOCKSIZE * nfo.channels * sizeof (float));
+			latency = u->get_latency ();
+			while (latency > 0) {
+				int n = latency > BLOCKSIZE ? BLOCKSIZE : latency;
+				peak  = u->process (n, peak, inp);
+				latency -= n;
+			}
+		}
+
+		if (0 != sf_seek (infile, 0, SEEK_SET)) {
+			fprintf (stderr, "Failed to rewind input file\n");
+			rv = 1;
+			goto end;
+		}
+
+		if (peak == 0) {
+			fprintf (stderr, "Input is silent, auto-peak is irrelevant\n");
+		} else {
+			float gain = coeff_to_dB (1.f / peak);
+			if (verbose) {
+				fprintf (verbose_fd, "%s-Peak : %6.2f dB%s, gain: %6.2fdB, total input-gain: %6.2fdB\n",
+				         true_peak ? "True" : "Digital",
+				         coeff_to_dB (peak),
+				         true_peak ? "TP" : "FS",
+				         gain, gain + input_gain + threshold);
+			}
+			p.set_inpgain (gain + input_gain + threshold);
+		}
+	}
 
 	latency = p.get_latency ();
 
@@ -335,6 +409,7 @@ main (int argc, char** argv)
 end:
 	sf_close (infile);
 	sf_close (outfile);
+	delete u;
 	free (inp);
 	free (out);
 	return rv;

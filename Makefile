@@ -21,7 +21,7 @@ all: sound-gambit
 
 man: sound-gambit.1
 
-sound-gambit: sound-gambit.cc peaklim.cc
+sound-gambit: sound-gambit.cc peaklim.cc upsampler.cc
 
 sound-gambit.1: sound-gambit
 	help2man -N -n 'Audio File Peak Limiter' -o sound-gambit.1 ./sound-gambit

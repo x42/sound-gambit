@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2010-2018 Fons Adriaensen <fons@linuxaudio.org>
+ * Copyright (C) 2021 Robin Gareus <robin@gareus.org>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,6 +20,8 @@
 #define _PEAKLIM_H
 
 #include <stdint.h>
+
+#include "upsampler.h"
 
 class Histmin
 {
@@ -83,6 +86,7 @@ public:
 	void process (int nsamp, float const* inp, float* out);
 
 private:
+	Upsampler      _upsampler;
 	float          _fsamp;
 	int            _nchan;
 	int            _div1;
@@ -98,7 +102,6 @@ private:
 	float          _w1, _w2, _w3, _wlf;
 	float          _z1, _z2, _z3;
 	float          _zlf[MAXCHAN];
-	float          _z[MAXCHAN][48];
 	volatile bool  _rstat;
 	volatile float _peak;
 	volatile float _gmax;
