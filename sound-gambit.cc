@@ -238,12 +238,6 @@ main (int argc, char** argv)
 		::exit (EXIT_FAILURE);
 	}
 
-	if (nfo.channels > Peaklim::MAXCHAN) {
-		fprintf (stderr, "Only up to %d channels are supported\n", Peaklim::MAXCHAN);
-		rv = 1;
-		goto end;
-	}
-
 	if (!nfo.seekable && auto_gain) {
 		fprintf (stderr, "Auto-gain only works with seekable files\n");
 		rv = 1;

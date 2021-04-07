@@ -55,8 +55,6 @@ private:
 class Peaklim
 {
 public:
-	enum { MAXCHAN = 64 };
-
 	Peaklim (void);
 	~Peaklim (void);
 
@@ -95,13 +93,13 @@ private:
 	int            _dsize;
 	int            _dmask;
 	int            _delri;
-	float*         _dbuff[MAXCHAN];
+	float**        _dbuff;
 	int            _c1, _c2;
 	float          _g0, _g1, _dg;
 	float          _gt, _m1, _m2;
 	float          _w1, _w2, _w3, _wlf;
 	float          _z1, _z2, _z3;
-	float          _zlf[MAXCHAN];
+	float*         _zlf;
 	volatile bool  _rstat;
 	volatile float _peak;
 	volatile float _gmax;

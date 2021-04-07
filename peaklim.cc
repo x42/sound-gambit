@@ -65,14 +65,14 @@ Histmin::write (float v)
 Peaklim::Peaklim (void)
     : _fsamp (0)
     , _nchan (0)
+    , _dbuff (0)
+    , _zlf (0)
     , _rstat (false)
     , _peak (0)
     , _gmax (1)
     , _gmin (1)
     , _truepeak (false)
 {
-	for (int i = 0; i < MAXCHAN; i++)
-		_dbuff[i] = 0;
 }
 
 Peaklim::~Peaklim (void)
@@ -117,14 +117,24 @@ Peaklim::set_truepeak (bool v)
 void
 Peaklim::init (float fsamp, int nchan)
 {
+	if (nchan == _nchan) {
+		return;
+	}
+
 	int i, k1, k2;
 
 	fini ();
-	if (nchan > MAXCHAN) {
-		nchan = MAXCHAN;
+
+	if (nchan == 0) {
+		return;
 	}
+
 	_fsamp = fsamp;
 	_nchan = nchan;
+
+	_dbuff = new float*[_nchan];
+	_zlf   = new float[_nchan];
+
 	if (fsamp > 130000)
 		_div1 = 32;
 	else if (fsamp > 65000) {
@@ -142,6 +152,7 @@ Peaklim::init (float fsamp, int nchan)
 	for (i = 0; i < _nchan; i++) {
 		_dbuff[i] = new float[_dsize];
 		memset (_dbuff[i], 0, _dsize * sizeof (float));
+		_zlf[i] = 0.f;
 	}
 	_hist1.init (k1 + 1);
 	_hist2.init (k2);
@@ -170,12 +181,13 @@ Peaklim::init (float fsamp, int nchan)
 void
 Peaklim::fini (void)
 {
-	int i;
-
-	for (i = 0; i < MAXCHAN; i++) {
+	for (int i = 0; i < _nchan; i++) {
 		delete[] _dbuff[i];
 		_dbuff[i] = 0;
 	}
+	delete[] _dbuff;
+	delete[] _zlf;
+	_zlf   = 0;
 	_nchan = 0;
 }
 
