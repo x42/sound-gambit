@@ -341,7 +341,7 @@ main (int argc, char** argv)
 		if (latency > 0) {
 			int ns = n > latency ? n - latency : 0;
 			if (ns > 0) {
-				if (ns != sf_writef_float (outfile, &out[latency], ns)) {
+				if (ns != sf_writef_float (outfile, &out[nfo.channels * latency], ns)) {
 					fprintf (stderr, "Error writing to output file.\n");
 					rv = 1;
 					goto end;
