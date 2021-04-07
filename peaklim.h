@@ -23,35 +23,6 @@
 
 #include "upsampler.h"
 
-class Histmin
-{
-public:
-	Histmin (void)
-	{
-	}
-	~Histmin (void)
-	{
-	}
-
-	void  init (int hlen);
-	float write (float v);
-	float
-	vmin (void)
-	{
-		return _vmin;
-	}
-
-private:
-	enum { SIZE = 32,
-	       MASK = SIZE - 1 };
-
-	int   _hlen;
-	int   _hold;
-	int   _wind;
-	float _vmin;
-	float _hist[SIZE];
-};
-
 class Peaklim
 {
 public:
@@ -84,29 +55,51 @@ public:
 	void process (int nsamp, float const* inp, float* out);
 
 private:
-	Upsampler      _upsampler;
-	float          _fsamp;
-	int            _nchan;
-	int            _div1;
-	int            _div2;
-	int            _delay;
-	int            _dsize;
-	int            _dmask;
-	int            _delri;
-	float**        _dbuff;
-	int            _c1, _c2;
-	float          _g0, _g1, _dg;
-	float          _gt, _m1, _m2;
-	float          _w1, _w2, _w3, _wlf;
-	float          _z1, _z2, _z3;
-	float*         _zlf;
-	volatile bool  _rstat;
-	volatile float _peak;
-	volatile float _gmax;
-	volatile float _gmin;
-	Histmin        _hist1;
-	Histmin        _hist2;
-	bool           _truepeak;
+	class Histmin
+	{
+	public:
+		void  init (int hlen);
+		float write (float v);
+		float vmin () { return _vmin; }
+
+	private:
+		enum {
+			SIZE = 32,
+			MASK = SIZE - 1
+		};
+
+		int   _hlen;
+		int   _hold;
+		int   _wind;
+		float _vmin;
+		float _hist[SIZE];
+	};
+
+	float _fsamp;
+	int   _nchan;
+	bool  _truepeak;
+
+	float** _dly_buf;
+	float*  _zlf;
+
+	int   _delay;
+	int   _dly_mask;
+	int   _dly_ridx;
+	int   _div1, _div2;
+	int   _c1, _c2;
+	float _g0, _g1, _dg;
+	float _gt, _m1, _m2;
+	float _w1, _w2, _w3, _wlf;
+	float _z1, _z2, _z3;
+
+	bool  _rstat;
+	float _peak;
+	float _gmax;
+	float _gmin;
+
+	Upsampler _upsampler;
+	Histmin   _hist1;
+	Histmin   _hist2;
 };
 
 #endif

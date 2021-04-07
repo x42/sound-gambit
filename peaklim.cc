@@ -24,33 +24,31 @@
 #include "peaklim.h"
 
 void
-Histmin::init (int hlen)
+Peaklim::Histmin::init (int hlen)
 {
-	int i;
-
 	assert (hlen <= SIZE);
 	_hlen = hlen;
 	_hold = hlen;
 	_wind = 0;
 	_vmin = 1;
-	for (i = 0; i < SIZE; i++)
+	for (int i = 0; i < SIZE; i++) {
 		_hist[i] = _vmin;
+	}
 }
 
 float
-Histmin::write (float v)
+Peaklim::Histmin::write (float v)
 {
-	int i, j;
-
-	i        = _wind;
+	int i    = _wind;
 	_hist[i] = v;
+
 	if (v <= _vmin) {
 		_vmin = v;
 		_hold = _hlen;
 	} else if (--_hold == 0) {
 		_vmin = v;
 		_hold = _hlen;
-		for (j = 1 - _hlen; j < 0; j++) {
+		for (int j = 1 - _hlen; j < 0; j++) {
 			v = _hist[(i + j) & MASK];
 			if (v < _vmin) {
 				_vmin = v;
@@ -65,13 +63,13 @@ Histmin::write (float v)
 Peaklim::Peaklim (void)
     : _fsamp (0)
     , _nchan (0)
-    , _dbuff (0)
+    , _truepeak (false)
+    , _dly_buf (0)
     , _zlf (0)
     , _rstat (false)
     , _peak (0)
     , _gmax (1)
     , _gmin (1)
-    , _truepeak (false)
 {
 }
 
@@ -83,25 +81,25 @@ Peaklim::~Peaklim (void)
 void
 Peaklim::set_inpgain (float v)
 {
-	_g1 = powf (10.0f, 0.05f * v);
+	_g1 = powf (10.f, 0.05f * v);
 }
 
 void
 Peaklim::set_threshold (float v)
 {
-	_gt = powf (10.0f, -0.05f * v);
+	_gt = powf (10.f, -0.05f * v);
 }
 
 void
 Peaklim::set_release (float v)
 {
-	if (v > 1.0f) {
-		v = 1.0f;
+	if (v > 1.f) {
+		v = 1.f;
 	}
 	if (v < 1e-3f) {
 		v = 1e-3f;
 	}
-	_w3 = 1.0f / (v * _fsamp);
+	_w3 = 1.f / (v * _fsamp);
 }
 
 void
@@ -121,8 +119,6 @@ Peaklim::init (float fsamp, int nchan)
 		return;
 	}
 
-	int i, k1, k2;
-
 	fini ();
 
 	if (nchan == 0) {
@@ -130,62 +126,69 @@ Peaklim::init (float fsamp, int nchan)
 	}
 
 	_fsamp = fsamp;
-	_nchan = nchan;
 
-	_dbuff = new float*[_nchan];
-	_zlf   = new float[_nchan];
-
-	if (fsamp > 130000)
+	if (fsamp > 130000) {
 		_div1 = 32;
-	else if (fsamp > 65000) {
+	} else if (fsamp > 65000) {
 		_div1 = 16;
-	} else
+	} else {
 		_div1 = 8;
+	}
+
+	_nchan = nchan;
 	_div2  = 8;
-	k1     = (int)(ceilf (1.2e-3f * _fsamp / _div1));
-	k2     = 12;
+	int k1 = (int)(ceilf (1.2e-3f * fsamp / _div1));
+	int k2 = 12;
 	_delay = k1 * _div1;
-	for (_dsize = 64; _dsize < _delay + _div1; _dsize *= 2)
-		;
-	_dmask = _dsize - 1;
-	_delri = 0;
-	for (i = 0; i < _nchan; i++) {
-		_dbuff[i] = new float[_dsize];
-		memset (_dbuff[i], 0, _dsize * sizeof (float));
+
+	int dly_size;
+	for (dly_size = 64; dly_size < _delay + _div1; dly_size *= 2) ;
+
+
+	_dly_mask = dly_size - 1;
+	_dly_ridx = 0;
+
+	_dly_buf = new float*[_nchan];
+	_zlf     = new float[_nchan];
+
+	for (int i = 0; i < _nchan; i++) {
+		_dly_buf[i] = new float[dly_size];
+		memset (_dly_buf[i], 0, dly_size * sizeof (float));
 		_zlf[i] = 0.f;
 	}
+
 	_hist1.init (k1 + 1);
 	_hist2.init (k2);
+
 	_c1  = _div1;
 	_c2  = _div2;
-	_m1  = 0.0f;
-	_m2  = 0.0f;
-	_wlf = 6.28f * 500.0f / fsamp;
-	_w1  = 10.0f / _delay;
+	_m1  = 0.f;
+	_m2  = 0.f;
+	_wlf = 6.28f * 500.f / fsamp;
+	_w1  = 10.f / _delay;
 	_w2  = _w1 / _div2;
-	_w3  = 1.0f / (0.01f * fsamp);
-	for (i = 0; i < _nchan; i++) {
-		_zlf[i] = 0.0f;
-	}
-	_z1   = 1.0f;
-	_z2   = 1.0f;
-	_z3   = 1.0f;
-	_gt   = 1.0f;
-	_g0   = 1.0f;
-	_g1   = 1.0f;
-	_dg   = 0.0f;
-	_gmax = 1.0f;
-	_gmin = 1.0f;
+	_w3  = 1.f / (0.01f * fsamp);
+	_z1  = 1.f;
+	_z2  = 1.f;
+	_z3  = 1.f;
+	_gt  = 1.f;
+	_g0  = 1.f;
+	_g1  = 1.f;
+	_dg  = 0.f;
+
+	_peak = 0.f;
+	_gmax = 1.f;
+	_gmin = 1.f;
 }
 
 void
 Peaklim::fini (void)
 {
 	for (int i = 0; i < _nchan; i++) {
-		delete[] _dbuff[i];
-		_dbuff[i] = 0;
+		delete[] _dly_buf[i];
+		_dly_buf[i] = 0;
 	}
-	delete[] _dbuff;
+	delete[] _dly_buf;
 	delete[] _zlf;
 	_zlf   = 0;
 	_nchan = 0;
@@ -220,17 +223,17 @@ Peaklim::fini (void)
  * _w2 : _w1 / _div2
  * _w3 : user-set release time
  *
- * _delri: offset in delay ringbuffer
+ * _dly_ridx: offset in delay ringbuffer
  * ri, wi; read/write indices
  */
 void
 Peaklim::process (int nframes, float const* inp, float* out)
 {
-	int   i, j, k, n, ri, wi;
-	float g, d, h1, h2, m1, m2, x, z, z1, z2, z3, pk, t0, t1;
+	int   ri, wi;
+	float h1, h2, m1, m2, z1, z2, z3, pk, t0, t1;
 
-	ri = _delri;
-	wi = (ri + _delay) & _dmask;
+	ri = _dly_ridx;
+	wi = (ri + _delay) & _dly_mask;
 	h1 = _hist1.vmin ();
 	h2 = _hist2.vmin ();
 	m1 = _m1;
@@ -250,19 +253,18 @@ Peaklim::process (int nframes, float const* inp, float* out)
 		t1 = _gmax;
 	}
 
-	k = 0;
+	int k = 0;
 	while (nframes) {
-		n = (_c1 < nframes) ? _c1 : nframes;
-
-		g = _g0;
-		for (j = 0; j < _nchan; j++) {
-			z = _zlf[j];
-			g = _g0;
-			d = _dg;
-			for (i = 0; i < n; i++) {
-				x = g * inp[j + (i + k) * _nchan];
+		int   n = (_c1 < nframes) ? _c1 : nframes;
+		float g = _g0;
+		for (int j = 0; j < _nchan; j++) {
+			float z = _zlf[j];
+			float d = _dg;
+			g       = _g0;
+			for (int i = 0; i < n; i++) {
+				float x = g * inp[j + (i + k) * _nchan];
 				g += d;
-				_dbuff[j][wi + i] = x;
+				_dly_buf[j][wi + i] = x;
 				z += _wlf * (x - z) + 1e-20f;
 
 				if (_truepeak) {
@@ -289,13 +291,13 @@ Peaklim::process (int nframes, float const* inp, float* out)
 			if (m1 > pk) {
 				pk = m1;
 			}
-			h1  = (m1 > 1.0f) ? 1.0f / m1 : 1.0f;
+			h1  = (m1 > 1.f) ? 1.f / m1 : 1.f;
 			h1  = _hist1.write (h1);
 			m1  = 0;
 			_c1 = _div1;
 			if (--_c2 == 0) {
 				m2 *= _gt;
-				h2  = (m2 > 1.0f) ? 1.0f / m2 : 1.0f;
+				h2  = (m2 > 1.f) ? 1.f / m2 : 1.f;
 				h2  = _hist2.write (h2);
 				m2  = 0;
 				_c2 = _div2;
@@ -309,10 +311,10 @@ Peaklim::process (int nframes, float const* inp, float* out)
 			}
 		}
 
-		for (i = 0; i < n; i++) {
+		for (int i = 0; i < n; i++) {
 			z1 += _w1 * (h1 - z1);
 			z2 += _w2 * (h2 - z2);
-			z = (z2 < z1) ? z2 : z1;
+			float z = (z2 < z1) ? z2 : z1;
 			if (z < z3) {
 				z3 += _w1 * (z - z3);
 			} else {
@@ -324,24 +326,25 @@ Peaklim::process (int nframes, float const* inp, float* out)
 			if (z3 < t0) {
 				t0 = z3;
 			}
-			for (j = 0; j < _nchan; j++) {
-				out[j + (k + i) * _nchan] = z3 * _dbuff[j][ri + i];
+			for (int j = 0; j < _nchan; j++) {
+				out[j + (k + i) * _nchan] = z3 * _dly_buf[j][ri + i];
 			}
 		}
 
-		wi = (wi + n) & _dmask;
-		ri = (ri + n) & _dmask;
+		wi = (wi + n) & _dly_mask;
+		ri = (ri + n) & _dly_mask;
 		k += n;
 		nframes -= n;
 	}
 
-	_delri = ri;
-	_m1    = m1;
-	_m2    = m2;
-	_z1    = z1;
-	_z2    = z2;
-	_z3    = z3;
-	_peak  = pk;
-	_gmin  = t0;
-	_gmax  = t1;
+	_m1 = m1;
+	_m2 = m2;
+	_z1 = z1;
+	_z2 = z2;
+	_z3 = z3;
+
+	_dly_ridx = ri;
+	_peak     = pk;
+	_gmin     = t0;
+	_gmax     = t1;
 }
