@@ -5,7 +5,7 @@ mandir = $(PREFIX)/share/man/man1
 PKG_CONFIG ?= pkg-config
 CXXFLAGS ?= -Wall -O3 -ffast-math
 
-VERSION?=$(shell (git describe --tags HEAD 2>/dev/null || echo "v0.5") | sed 's/^v//')
+VERSION?=$(shell (git describe --tags HEAD 2>/dev/null || echo "v0.6") | sed 's/^v//')
 
 ###############################################################################
 
