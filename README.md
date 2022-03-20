@@ -23,7 +23,7 @@ Install
 Compiling sound-gambit requires [libsndfile](http://www.mega-nerd.com/libsndfile/), gnu-make, and a c++-compiler.
 
 ```bash
-git clone git://github.com/x42/sound-gambit.git
+git clone https://github.com/x42/sound-gambit.git
 cd sound-gambit
 make
 #sudo make install PREFIX=/usr
